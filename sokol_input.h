@@ -477,81 +477,39 @@ static int translate_word(input_parser_t *p, bool *is_modifier) {
     return -1;
 }
 
-#define __garry_raw(a)              ((int *) (a) - 2)
-#define __garry_m(a)                __garry_raw(a)[0]
-#define __garry_n(a)                __garry_raw(a)[1]
+#define __vector_raw(a)              ((int *) (a) - 2)
+#define __vector_m(a)                __vector_raw(a)[0]
+#define __vector_n(a)                __vector_raw(a)[1]
 
-#define __garry_needgrow(a,n)       ((a)==0 || __garry_n(a)+n >= __garry_m(a))
-#define __garry_grow(a,n)           __garry_growf((void **) &(a), (n), sizeof(*(a)))
-#define __garry_maybegrow(a,n)      (__garry_needgrow(a,(n)) ? __garry_grow(a,n) : 0)
+#define __vector_needgrow(a,n)       ((a)==0 || __vector_n(a)+n >= __vector_m(a))
+#define __vector_grow(a,n)           __grow_vector((void **) &(a), (n), sizeof(*(a)))
+#define __vector_maybegrow(a,n)      (__vector_needgrow(a,(n)) ? __vector_grow(a,n) : 0)
 
-#define __garry_needshrink(a)       (__garry_m(a) > 4 && __garry_n(a) <= __garry_m(a) / 4)
-#define __garry_maybeshrink(a)      (__garry_needshrink(a) ? __garry_shrink(a) : 0)
-#define __garry_shrink(a)           __garry_shrinkf((void **) &(a), sizeof(*(a)))
+#define vector_free(a)               ((a) ? free(__vector_raw(a)),0 : 0)
+#define vector_append(a, v)          (__vector_maybegrow(a,1), (a)[__vector_n(a)++] = (v))
+#define vector_count(a)              ((a) ? __vector_n(a) : 0)
 
-#define garry_free(a)               ((a) ? free(__garry_raw(a)),0 : 0)
-#define garry_append(a, v)          (__garry_maybegrow(a,1), (a)[__garry_n(a)++] = (v))
-#define garry_count(a)              ((a) ? __garry_n(a) : 0)
-#define garry_insert(a, idx, v)     (__garry_maybegrow(a,1), __garry_memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - idx) * sizeof(*(a))), a[idx] = (v))
-#define garry_push(a, v)            (garry_insert(a,0,v))
-#define garry_cdr(a)                (void*)(garry_count(a) > 1 ? &(a+1) : NULL)
-#define garry_car(a)                (void*)((a) ? &(a)[0] : NULL)
-#define garry_last(a)               (void*)((a) ? &(a)[__garry_n(a)-1] : NULL)
-#define garry_pop(a)                (--__garry_n(a), __garry_maybeshrink(a))
-#define garry_remove_at(a, idx)     (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &a[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
-#define garry_shift(a)              (garry_remove_at(a, 0))
-#define garry_clear(a)              ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
-
-static void __garry_growf(void **arr, int increment, int itemsize) {
-    int m = *arr ? 2 * __garry_m(*arr) + increment : increment + 1;
-    void *p = (void*)realloc(*arr ? __garry_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
+static void __grow_vector(void **arr, int increment, int itemsize) {
+    int m = *arr ? 2 * __vector_m(*arr) + increment : increment + 1;
+    void *p = (void*)realloc(*arr ? __vector_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
     assert(p);
     if (p) {
         if (!*arr)
             ((int *)p)[1] = 0;
         *arr = (void*)((int*)p + 2);
-        __garry_m(*arr) = m;
+        __vector_m(*arr) = m;
     }
-}
-
-static void __garry_shrinkf(void **arr, int itemsize) {
-    int m = *arr ? __garry_m(*arr) / 2 : 0;
-    void *p = (void*)realloc(*arr ? __garry_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
-    assert(p);
-    if (p) {
-        *arr = (void*)((int*)p + 2);
-        __garry_m(*arr) = m;
-    }
-}
-
-static void* __garry_memmove(void *dst, const void *src, size_t n) {
-    if (!dst || !src)
-        return (void*)0;
-    if (!n)
-        return dst;
-    char *_dest = (char*)dst;
-    char *_src = (char*)src;
-    if (dst <= src)
-        while (n--)
-            *_dest++ = *_src++;
-    else if (dst > src) {
-        _dest += n - 1;
-        _src += n - 1;
-        while (n--)
-            *_dest-- = *_src--;
-    }
-    return dst;
 }
 
 static void parser_add_key(input_parser_t *p, int key) {
     bool found = false;
-    for (int i = 0; i < garry_count(p->keys); i++)
+    for (int i = 0; i < vector_count(p->keys); i++)
         if (p->keys[i] == key) {
             found = true;
             break;
         }
     if (!found)
-        garry_append(p->keys, key);
+        vector_append(p->keys, key);
 }
 
 static bool parse_input_str(input_parser_t *p) {
@@ -604,7 +562,7 @@ static bool parse_input_str(input_parser_t *p) {
 BAIL:
     fprintf(stderr, "[FAILED TO PARSE INPUT STRING] parse_input_str cannot read '%s'\n", p->original);
     if (p->keys)
-        garry_free(p->keys);
+        vector_free(p->keys);
     return false;
 }
 
@@ -613,13 +571,13 @@ static int* _vaargs(int n, va_list args) {
     for (int i = 0; i < n; i++) {
         bool found = false;
         int key = va_arg(args, int);
-        for (int j = 0; j < garry_count(result); j++)
+        for (int j = 0; j < vector_count(result); j++)
             if (key == result[j]) {
                 found = true;
                 break;
             }
         if (!found)
-            garry_append(result, key);
+            vector_append(result, key);
     }
     va_end(args);
     return result;
@@ -633,14 +591,14 @@ static bool sapp_create_input(input_state_t *dst, int modifiers, int n, ...) {
     va_start(args, n);
     int *tmp = _vaargs(n, args);
     if (tmp) {
-        garry_free(tmp);
+        vector_free(tmp);
         return false;
     }
     for (int i = 0; i < MAX_INPUT_STATE_KEYS; i++)
         dst->keys[i] = -1;
-    int max = _MIN(garry_count(tmp), MAX_INPUT_STATE_KEYS);
+    int max = _MIN(vector_count(tmp), MAX_INPUT_STATE_KEYS);
     memcpy(dst->keys, tmp, max * sizeof(int));
-    garry_free(tmp);
+    vector_free(tmp);
     return true;
 }
 
@@ -657,9 +615,9 @@ static bool sapp_create_input_str(input_state_t *dst, const char *str) {
     if (p.modifiers)
         dst->modifiers = p.modifiers;
     if (p.keys) {
-        int max = _MIN(garry_count(p.keys), MAX_INPUT_STATE_KEYS);
+        int max = _MIN(vector_count(p.keys), MAX_INPUT_STATE_KEYS);
         memcpy(dst->keys, p.keys, max * sizeof(int));
-        garry_free(p.keys);
+        vector_free(p.keys);
     }
     return true;
 }
@@ -675,12 +633,12 @@ bool sapp_check_input_str_down(const char *str) {
     if (p.modifiers)
         mod_check = sapp_modifier_equal(p.modifiers);
     if (p.keys) {
-        for (int i = 0; i < garry_count(p.keys); i++)
+        for (int i = 0; i < vector_count(p.keys); i++)
             if (!sapp_is_key_down(p.keys[i])) {
                 key_check = false;
                 break;
             }
-        garry_free(p.keys);
+        vector_free(p.keys);
     }
     return mod_check && key_check;
 }
@@ -698,7 +656,7 @@ bool sapp_check_input_down(int modifiers, int n, ...) {
     if (!(tmp = _vaargs(n, args)))
         goto BAIL;
     bool check = true;
-    for (int i = 0; i < garry_count(args); i++)
+    for (int i = 0; i < vector_count(args); i++)
         if (!sapp_is_key_down(tmp[i])) {
             check = false;
             break;
@@ -708,7 +666,7 @@ bool sapp_check_input_down(int modifiers, int n, ...) {
         result = true;
 BAIL:
     if (tmp)
-        garry_free(tmp);
+        vector_free(tmp);
     return result;
 }
 
@@ -723,12 +681,12 @@ bool sapp_check_input_str_released(const char *str) {
     if (p.modifiers)
         mod_check = sapp_modifier_equal(p.modifiers);
     if (p.keys) {
-        for (int i = 0; i < garry_count(p.keys); i++)
+        for (int i = 0; i < vector_count(p.keys); i++)
             if (!sapp_was_key_released(p.keys[i])) {
                 key_check = false;
                 break;
             }
-        garry_free(p.keys);
+        vector_free(p.keys);
     }
     return mod_check || key_check;
 }
@@ -746,7 +704,7 @@ bool sapp_check_input_released(int modifiers, int n, ...) {
     if (!(tmp = _vaargs(n, args)))
         goto BAIL;
     bool check = true;
-    for (int i = 0; i < garry_count(args); i++)
+    for (int i = 0; i < vector_count(args); i++)
         if (!sapp_was_key_released(tmp[i])) {
             check = false;
             break;
@@ -756,7 +714,7 @@ bool sapp_check_input_released(int modifiers, int n, ...) {
         result = true;
 BAIL:
     if (tmp)
-        garry_free(tmp);
+        vector_free(tmp);
     return result;
 }
 
@@ -772,12 +730,12 @@ bool sapp_check_input_str_up(const char *str) {
         if ((mod_check = sapp_modifier_equal(p.modifiers)))
             return false;
     if (p.keys) {
-        for (int i = 0; i < garry_count(p.keys); i++)
+        for (int i = 0; i < vector_count(p.keys); i++)
             if (sapp_is_key_down(p.keys[i])) {
                 key_check = false;
                 break;
             }
-        garry_free(p.keys);
+        vector_free(p.keys);
     }
     return mod_check && key_check;
 }
@@ -795,7 +753,7 @@ bool sapp_check_input_up(int modifiers, int n, ...) {
     if (!(tmp = _vaargs(n, args)))
         goto BAIL;
     bool check = true;
-    for (int i = 0; i < garry_count(args); i++)
+    for (int i = 0; i < vector_count(args); i++)
         if (sapp_is_key_down(tmp[i])) {
             check = false;
             break;
@@ -805,7 +763,7 @@ bool sapp_check_input_up(int modifiers, int n, ...) {
         result = true;
 BAIL:
     if (tmp)
-        garry_free(tmp);
+        vector_free(tmp);
     return result;
 }
 #endif // SUK_IMPL
