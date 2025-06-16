@@ -1,4 +1,4 @@
-/* sokol_input.h -- https://github.com/takeiteasy/suk
+/* sokol_input.h -- https://github.com/takeiteasy/sokol-kit
 
  The MIT License (MIT)
  
@@ -23,8 +23,8 @@
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef SUK_INPUT
-#define SUK_INPUT
+#ifndef SK_INPUT
+#define SK_INPUT
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -98,9 +98,9 @@ bool sapp_check_input_up(int modifiers, int n, ...);
 #if defined(__cplusplus)
 }
 #endif
-#endif // SUK_INPUT
+#endif // SK_INPUT
 
-#ifdef SUK_IMPL
+#ifdef SOKOL_IMPL
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -766,4 +766,4 @@ BAIL:
         vector_free(tmp);
     return result;
 }
-#endif // SUK_IMPL
+#endif // SOKOL_IMPL

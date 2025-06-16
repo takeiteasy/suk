@@ -1,4 +1,4 @@
-/* sokol_image.h -- https://github.com/takeiteasy/suk
+/* sokol_image.h -- https://github.com/takeiteasy/sokol-kit
 
  The MIT License (MIT)
  
@@ -23,8 +23,8 @@
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef SUK_IMG
-#define SUK_IMG
+#ifndef SK_IMG
+#define SK_IMG
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -50,9 +50,9 @@ sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *widt
 #if defined(__cplusplus)
 }
 #endif
-#endif // SUK_INPUT
+#endif // SK_INPUT
 
-#ifdef SUK_IMPL
+#ifdef SOKOL_IMPL
 #ifdef _WIN32
 #include <io.h>
 #include <dirent.h>
@@ -65,15 +65,15 @@ sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *widt
 #ifndef __has_include
 #define __has_include(x) 1
 #endif
-#ifndef SUK_DEPS_PATH
-#define SUK_DEPS_PATH "deps"
+#ifndef SK_DEPS_PATH
+#define SK_DEPS_PATH "deps"
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #if __has_include("stb_image.h")
 #include "stb_image.h"
 #else
-#include SUK_DEPS_PATH "/stb_image.h"
+#include SK_DEPS_PATH "/stb_image.h"
 #endif
 
 #define QOI_IMPLEMENTATION
@@ -81,7 +81,7 @@ sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *widt
 #if __has_include("qoi.h")
 #include "qoi.h"
 #else
-#include SUK_DEPS_PATH "/qoi.h"
+#include SK_DEPS_PATH "/qoi.h"
 #endif
 
 sg_image sg_empty_texture(int width, int height) {

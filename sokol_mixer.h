@@ -1,4 +1,4 @@
-/* sokol_mixer.h -- https://github.com/takeiteasy/suk
+/* sokol_mixer.h -- https://github.com/takeiteasy/sokol-kit
 
  The MIT License (MIT)
 
@@ -23,8 +23,8 @@
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef SUK_MIXER
-#define SUK_MIXER
+#ifndef SK_MIXER
+#define SK_MIXER
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -44,9 +44,9 @@ extern "C" {
 #if defined(__cplusplus)
 }
 #endif
-#endif // SUK_MIXER
+#endif // SK_MIXER
 
-#ifdef SUK_IMPL
+#ifdef SOKOL_IMPL
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,35 +55,35 @@ extern "C" {
 #ifndef __has_include
 #define __has_include(x) 1
 #endif
-#ifndef SUK_DEPS_PATH
-#define SUK_DEPS_PATH "deps"
+#ifndef SK_DEPS_PATH
+#define SK_DEPS_PATH "deps"
 #endif
 
 #if __has_include("stb_vorbis.h")
 #include "stb_vorbis.h"
 #else
-#include SUK_DEPS_PATH "/stb_vorbis.h"
+#include SK_DEPS_PATH "/stb_vorbis.h"
 #endif
 
 #define DR_WAV_IMPLEMENTATION
 #if __has_include("dr_wav.h")
 #include "dr_wav.h"
 #else
-#include SUK_DEPS_PATH "/dr_wav.h"
+#include SK_DEPS_PATH "/dr_wav.h"
 #endif
 
 #define DR_MP3_IMPLEMENTATION
 #if __has_include("dr_mp3.h")
 #include "dr_mp3.h"
 #else
-#include SUK_DEPS_PATH "/dr_mp3.h"
+#include SK_DEPS_PATH "/dr_mp3.h"
 #endif
 
 #define QOA_IMPLEMENTATION
 #if __has_include("qoa.h")
 #include "qoa.h"
 #else
-#include SUK_DEPS_PATH "/qoa.h"
+#include SK_DEPS_PATH "/qoa.h"
 #endif
 
 #define DR_FLAC_IMPLEMENTATION
@@ -91,7 +91,7 @@ extern "C" {
 #if __has_include("dr_flac.h")
 #include "dr_flac.h"
 #else
-#include SUK_DEPS_PATH "/dr_flac.h"
+#include SK_DEPS_PATH "/dr_flac.h"
 #endif
 
-#endif // SUK_IMPL
+#endif // SOKOL_IMPL

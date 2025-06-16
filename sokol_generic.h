@@ -1,4 +1,4 @@
-/* sokol_generic.h -- https://github.com/takeiteasy/suk
+/* sokol_generic.h -- https://github.com/takeiteasy/sokol-kit
 
  _Generic wrapper around sokol types, call sg_query_info(<obj>) instead of
  sg_query_buffer_info or sg_query_image_info, for example.
@@ -26,8 +26,8 @@
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef SUK_GENERIC
-#define SUK_GENERIC
+#ifndef SK_GENERIC
+#define SK_GENERIC
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -111,4 +111,4 @@ extern "C" {
 #if defined(__cplusplus)
 }
 #endif
-#endif // SUK_GENERIC
+#endif // SK_GENERIC

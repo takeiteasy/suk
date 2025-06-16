@@ -4,7 +4,6 @@
 #include "sokol_glue.h"
 #include "sokol_audio.h"
 #include "sokol_gp.h"
-#define SUK_IMPL
 #include "sokol_generic.h"
 #include "sokol_image.h"
 #include "sokol_input.h"
@@ -12,7 +11,6 @@
 
 #include <stdio.h> // for fprintf()
 #include <stdlib.h> // for exit()
-#include <math.h> // for sinf() and cosf()
 
 static sg_image test_texture = {0};
 

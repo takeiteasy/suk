@@ -1,11 +1,11 @@
-# suk
+# sokol-kit
 
 > [!WARNING]
 > Work in progres
 
-```suk``` (sokol utility kit) is a small collection of utility libraries for [sokol](https://github.com/floooh/sokol/)
+```sokol-kit``` is a small collection of utility libraries for [sokol](https://github.com/floooh/sokol/)
 
-All libraries are single-header, so `SUK_IMPL` must be defined (***once***) before including any headers.
+All libraries are single-header, so `SOKOL_IMPL` must be defined (***once***) before including any headers.
 
 ## Libraries
 
