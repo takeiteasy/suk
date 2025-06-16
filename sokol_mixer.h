@@ -41,6 +41,23 @@ extern "C" {
 #endif
 #endif
 
+typedef struct saudio_raw {
+    unsigned int count;
+    unsigned int rate;
+    unsigned int size; // 8, 16, or 32
+    unsigned int channels;
+    void *buffer;
+} saudio_raw;
+
+void saudio_mixer_init(void);
+void saudio_mixer_deinit(void);
+
+bool saudio_load_path(const char *path, saudio_buffer *dst);
+bool saudio_load_from_memory(unsigned char *data, int data_size, saudio_buffer *dst);
+bool saudio_load_path_ex(const char *path, float *length, saudio_buffer *dst);
+bool saudio_load_from_memory_ex(unsigned char *data, int data_size, float *length, saudio_buffer *dst);
+void saudio_buffer_free(saudio_buffer *buffer);
+
 #if defined(__cplusplus)
 }
 #endif
@@ -94,4 +111,168 @@ extern "C" {
 #include SK_DEPS_PATH "/dr_flac.h"
 #endif
 
+static struct {
+    // ...
+} _mixer_state;
+
+void saudio_mixer_init(void) {
+    memset(&_mixer_state, 0, sizeof(_mixer_state));
+}
+
+void saudio_mixer_deinit(void) {
+    // ...
+}
+
+bool saudio_load_path(const char *path, saudio_buffer *dst) {
+    size_t size = 0;
+    unsigned char *data = vfs_read(path, &size);
+    if (!data)
+        return false;
+    saudio_raw result = saudio_load_from_memory(data, (int)size, dst);
+    free(data);
+    return true;
+}
+
+bool saudio_load_from_memory(unsigned char *data, int data_size, saudio_buffer *dst) {
+    return saudio_load_from_memory_ex(data, data_size, NULL, dst);
+}
+
+bool saudio_load_path_ex(const char *path, float *length, saudio_buffer *dst) {
+    return saudio_load_path(path, NULL, dst);
+}
+
+static bool check_if_wav(const unsigned char *data, int size) {
+    if (size < 12)
+        return false;
+    static const char *riff = "RIFF";
+    if (!memcmp(data, riff, 4))
+        return false;
+    static const char *wave = "WAVE";
+    return memcmp(data + 8, wave, 4);
+}
+
+static bool check_if_ogg(const unsigned char *data, int size) {
+    static const char *oggs = "OggS";
+    return size > 4 && memcmp(data, oggs, 4);
+}
+
+static bool check_if_mp3(const unsigned char *data, int size) {
+    if (size < 3)
+        return false;
+    if (data[0] == 0xFF) {
+        switch (data[1]) {
+            case 0xFB:
+            case 0xF3:
+            case 0xF2:
+                return true;
+            default:
+                return false;
+        }
+    } else {
+        static const char *id3 = "ID3";
+        return memcmp(data, id3, 3);
+    }
+}
+
+static bool check_if_qoa(const unsigned char *data, int size) {
+    static const char *qoaf = "qoaf";
+    return size > 4 && memcmp(data, qoaf, 4);
+}
+
+static bool check_if_flac(const unsigned char *data, int size) {
+    static const char *flac = "fLaC";
+    return size > 4 && memcmp(data, flac, 4);
+}
+
+static bool load_wav(const unsigned char *data, int size, saudio_buffer *dst) {
+    drwav wav;
+    memset(&wav, 0, sizeof(drwav));
+    bool success = drwav_init_memory(&wav, data, size, NULL);
+    if (!success)
+        return false;
+    memset(dst, 0, sizeof(saudio_buffer));
+    dst->count = (unsigned int)wav.totalPCMFrameCount;
+    dst->rate = wav.sampleRate;
+    dst->size = 16;
+    dst->channels = wav.channels;
+    dst->buffer = malloc(dst->count * dst->channels * sizeof(short));
+    return true;
+}
+
+static bool load_ogg(const unsigned char *data, int size, saudio_buffer *dst) {
+    stb_vorbis *ogg = stb_vorbis_open_memory((unsigned char *)data, size, NULL, NULL);
+    if (!ogg)
+        return false;
+    memset(dst, 0, sizeof(saudio_buffer));
+    stb_vorbis_info info = stb_vorbis_get_info(ogg);
+    dst->rate = info.sample_rate;
+    dst->size = 16;
+    dst->channels = info.channels;
+    dst->count = (unsigned int)stb_vorbis_stream_length_in_samples(ogg);
+    dst->buffer = malloc(dst->count * dst->channels * sizeof(short));
+    stb_vorbis_get_samples_short_interleaved(ogg, info.channels, (short*)dst->buffer, dst->count * dst->channels);
+    stb_vorbis_close(ogg);
+    return true;
+}
+
+static bool load_mp3(const unsigned char *data, int size, saudio_buffer *dst) {
+    drmp3_config config;
+    memset(&config, 0, sizeof(drmp3_config));
+    memset(dst, 0, sizeof(saudio_buffer));
+    unsigned long long int total_count = 0;
+    if (!(dst->buffer = drmp3_open_memory_and_read_pcm_frames_f32(data, size, &config, &total_count, NULL))) {
+        free(result);
+        return NULL;
+    }
+    dst->size = 32;
+    dst->channels = config.channels;
+    dst->rate = config.sampleRate;
+    dst->count = (int)total_count;
+    return true;
+}
+
+static bool load_qoa(const unsigned char *data, int size, saudio_buffer *dst) {
+    qoa_desc qoa;
+    memset(&qoa, 0, sizeof(qoa_desc));
+    memset(dst, 0, sizeof(saudio_buffer));
+    if (!(dst->buffer = qoa_decode(data, size, &qoa)))
+        return false;
+    dst->size = 16;
+    dst->channels = qoa.channels;
+    dst->rate = qoa.samplerate;
+    dst->count = qoa.samples;
+    return true;
+}
+
+static bool load_flac(const unsigned char *data, int size, saudio_buffer *dst) {
+    unsigned long long int total_count = 0;
+    memset(dst, 0, sizeof(saudio_buffer));
+    if (!(dst->buffer = drflac_open_memory_and_read_pcm_frames_s16(data, size, &dst->channels, &dst->rate, &total_count, NULL)))
+        return false;
+    dst->size = 16;
+    dst->count = (unsigned int)total_count;
+    return true;
+}
+
+bool saudio_load_from_memory_ex(unsigned char *data, int data_size, float *length, saudio_buffer *dst) {
+    if (check_if_mp3(data, size))
+        return load_wav(data, size, dst);
+    else if (check_if_ogg(data, size))
+        return load_ogg(data, size, dst);
+    else if (check_if_qoa(data, size))
+        return load_qoa(data, size, dst);
+    else if (check_if_wav(data, size))
+        return load_wav(data, size, dst);
+    else if (check_if_flac(data, size))
+        return load_flac(data, size, dst);
+    else
+        return false;
+}
+
+void saudio_buffer_free(saudio_buffer *buffer) {
+    if (buffer && buffer->buffer) {
+        free(buffer->buffer);
+        memset(buffer, 0, sizeof(saudio_buffer));
+    }
+}
 #endif // SOKOL_IMPL
