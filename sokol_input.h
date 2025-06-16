@@ -141,7 +141,7 @@ static struct {
     input_t input_prev, input_current;
 } state;
 
-void sapp_init_input(void) {
+void sapp_input_init(void) {
     memset(&state.input_prev,    0, sizeof(input_t));
     memset(&state.input_current, 0, sizeof(input_t));
 }
@@ -625,6 +625,8 @@ static int* _vaargs(int n, va_list args) {
     return result;
 }
 
+#define _MIN(A, B) ((A) < (B) ? (A) : (B))
+
 static bool sapp_create_input(input_state_t *dst, int modifiers, int n, ...) {
     dst->modifiers = modifiers;
     va_list args;
@@ -636,7 +638,7 @@ static bool sapp_create_input(input_state_t *dst, int modifiers, int n, ...) {
     }
     for (int i = 0; i < MAX_INPUT_STATE_KEYS; i++)
         dst->keys[i] = -1;
-    int max = MIN(garry_count(tmp), MAX_INPUT_STATE_KEYS);
+    int max = _MIN(garry_count(tmp), MAX_INPUT_STATE_KEYS);
     memcpy(dst->keys, tmp, max * sizeof(int));
     garry_free(tmp);
     return true;
@@ -655,7 +657,7 @@ static bool sapp_create_input_str(input_state_t *dst, const char *str) {
     if (p.modifiers)
         dst->modifiers = p.modifiers;
     if (p.keys) {
-        int max = MIN(garry_count(p.keys), MAX_INPUT_STATE_KEYS);
+        int max = _MIN(garry_count(p.keys), MAX_INPUT_STATE_KEYS);
         memcpy(dst->keys, p.keys, max * sizeof(int));
         garry_free(p.keys);
     }
