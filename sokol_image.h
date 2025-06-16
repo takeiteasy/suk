@@ -1,8 +1,5 @@
-/* jeff_img.h -- https://github.com/takeiteasy/jeff
- 
- Simple wrapper for loading textures using `stb_image.h` and `qoi.h` into and
- sokol sg_image object
- 
+/* sokol_image.h -- https://github.com/takeiteasy/suk
+
  The MIT License (MIT)
  
  Copyright (c) 2024 George Watson
@@ -26,14 +23,14 @@
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef JEFF_IMG
-#define JEFF_IMG
+#ifndef SUK_IMG
+#define SUK_IMG
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 #ifndef SOKOL_GFX_INCLUDED
-#error "Please include sokol_gfx.h before sokol_img.h"
+#error "Please include sokol_gfx.h before sokol_image.h"
 #endif
 
 sg_image sg_empty_texture(int width, int height);
@@ -45,9 +42,9 @@ sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *widt
 #if defined(__cplusplus)
 }
 #endif
-#endif // JEFF_INPUT
+#endif // SUK_INPUT
 
-#ifdef JEFF_IMPL
+#ifdef SUK_IMPL
 #ifdef _WIN32
 #include <io.h>
 #include <dirent.h>
@@ -56,10 +53,28 @@ sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *widt
 #else
 #include <unistd.h>
 #endif
+
+#ifndef __has_include
+#define __has_include(x) 1
+#endif
+#ifndef SUK_DEPS_PATH
+#define SUK_DEPS_PATH "deps"
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
-#include "deps/stb_image.h"
+#if __has_include("stb_image.h")
+#include "stb_image.h"
+#else
+#include SUK_DEPS_PATH "/stb_image.h"
+#endif
+
 #define QOI_IMPLEMENTATION
-#include "deps/qoi.h"
+#define STB_IMAGE_IMPLEMENTATION
+#if __has_include("qoi.h")
+#include "qoi.h"
+#else
+#include SUK_DEPS_PATH "/qoi.h"
+#endif
 
 sg_image sg_empty_texture(int width, int height) {
     assert(width && height);

@@ -1,25 +1,23 @@
-# jeff
+# suk
 
 > [!WARNING]
 > Work in progres
 
-Jeff is a small collection of utility libraries for [sokol](https://github.com/floooh/sokol/). Think of them as a pizza you bring on a date.
+```suk``` (sokol utility kit) is a small collection of utility libraries for [sokol](https://github.com/floooh/sokol/)
 
-All libraries are single-header, so `JEFF_IMPL` must be defined (***once***) before including any headers.
+All libraries are single-header, so `SUK_IMPL` must be defined (***once***) before including any headers.
 
 ## Libraries
 
-| File                     | Description                                       |
-|--------------------------|---------------------------------------------------|
-| **jeff_generic.h**†      | _Generic wrappers for sokol types                 |
-| **jeff_img.h**\*         | Load textures from `stb_image.h` + `qoi.h`        |
-| **jeff_input.h**         | Basic input manager (keyboard, mouse, etc)        |
-| **jeff_png.h**           | Dependency-free png texture loader                |
-| **jeff_scalefactor.h**§  | Function to return the monitors scale factor      |
+| File                  | Description                                   |
+|-----------------------|-----------------------------------------------|
+| **sokol_draw.h**      | Easy immediate mode style rendering API       |
+| **sokol_generic.h**   | _Generic wrappers for sokol types             |
+| **sokol_image.h**†    | Load textures from memory or disk             |
+| **sokol_input.h**     | Basic input manager (keyboard, mouse, etc)    |
+| **sokol_mixer.h**†    | Audio loader + basic mixer (***WIP***)        |
 
-* **†** Relies on modern compiler extensions or C11+ features
-* **\*** Relies on third-party library (located in `deps/`)
-* **§** Platform specific (safe to include on unspecified platforms)
+* **†** Relies on third-party library (located in `deps/`)
 
 ## LICENSE
 ```

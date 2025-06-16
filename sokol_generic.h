@@ -1,4 +1,4 @@
-/* jeff_generic.h -- https://github.com/takeiteasy/jeff
+/* sokol_generic.h -- https://github.com/takeiteasy/suk
 
  _Generic wrapper around sokol types, call sg_query_info(<obj>) instead of
  sg_query_buffer_info or sg_query_image_info, for example.
@@ -26,8 +26,8 @@
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-#ifndef JEFF_GENERIC
-#define JEFF_GENERIC
+#ifndef SUK_GENERIC
+#define SUK_GENERIC
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -108,16 +108,7 @@ extern "C" {
       const sg_pipeline *: sg_query_pipeline_defaults,                         \
       const sg_attachments *: sg_query_attachments_defaults)(OBJ)
 
-#define sg_query_defaults(OBJ)                                                 \
-  _Generic((OBJ),                                                              \
-      const sg_buffer *: sg_query_buffer_defaults,                             \
-      const sg_image *: sg_query_image_defaults,                               \
-      const sg_sampler *: sg_query_sampler_defaults,                           \
-      const sg_shader *: sg_query_shader_defaults,                             \
-      const sg_pipeline *: sg_query_pipeline_defaults,                         \
-      const sg_attachments *: sg_query_attachments_defaults)(OBJ)
-
 #if defined(__cplusplus)
 }
 #endif
-#endif // JEFF_GENERIC
+#endif // SUK_GENERIC
