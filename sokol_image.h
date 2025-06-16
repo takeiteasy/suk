@@ -29,8 +29,16 @@
 extern "C" {
 #endif
 
+#ifndef __has_include
+#define __has_include(x) 1
+#endif
+
 #ifndef SOKOL_GFX_INCLUDED
-#error "Please include sokol_gfx.h before sokol_image.h"
+#if __has_include("sokol_gfx.h")
+#include "sokol_gfx.h"
+#else
+#error Please include sokol_gfx.h before sokol_image.h
+#endif
 #endif
 
 sg_image sg_empty_texture(int width, int height);

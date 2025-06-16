@@ -29,15 +29,27 @@
 extern "C" {
 #endif
 
+#ifndef __has_include
+#define __has_include(x) 1
+#endif
+
 #ifndef SOKOL_APP_INCLUDED
-#error "Please include sokol_app.h before the sokol_input.h implementation"
+#if __has_include("sokol_app.h")
+#include "sokol_app.h"
+#else
+#error Please include sokol_app.h before the sokol_input.h implementation
 #endif
+#endif
+
 #ifndef SOKOL_TIME_INCLUDED
-#error "Please include sokol_time.h before the sokol_input.h implementation"
+#if __has_include("sokol_time.h")
+#include "sokol_time.h"
+#else
+#error Please include sokol_time.h before the sokol_input.h implementation
 #endif
-#include <string.h>
+#endif
+
 #include <stdarg.h>
-#include <stdint.h>
 
 // Assign sapp_desc.event_cb = suk_event
 // Or just pass the event to it inside the callback
@@ -89,6 +101,12 @@ bool sapp_check_input_up(int modifiers, int n, ...);
 #endif // SUK_INPUT
 
 #ifdef SUK_IMPL
+#include <string.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <assert.h>
+#include <stdlib.h>
+
 typedef struct {
     int down;
     uint64_t timestamp;
@@ -448,6 +466,72 @@ static int translate_word(input_parser_t *p, bool *is_modifier) {
 #undef X
     free(buf);
     return -1;
+}
+
+#define __garry_raw(a)              ((int *) (a) - 2)
+#define __garry_m(a)                __garry_raw(a)[0]
+#define __garry_n(a)                __garry_raw(a)[1]
+
+#define __garry_needgrow(a,n)       ((a)==0 || __garry_n(a)+n >= __garry_m(a))
+#define __garry_grow(a,n)           __garry_growf((void **) &(a), (n), sizeof(*(a)))
+#define __garry_maybegrow(a,n)      (__garry_needgrow(a,(n)) ? __garry_grow(a,n) : 0)
+
+#define __garry_needshrink(a)       (__garry_m(a) > 4 && __garry_n(a) <= __garry_m(a) / 4)
+#define __garry_maybeshrink(a)      (__garry_needshrink(a) ? __garry_shrink(a) : 0)
+#define __garry_shrink(a)           __garry_shrinkf((void **) &(a), sizeof(*(a)))
+
+#define garry_free(a)               ((a) ? free(__garry_raw(a)),0 : 0)
+#define garry_append(a, v)          (__garry_maybegrow(a,1), (a)[__garry_n(a)++] = (v))
+#define garry_count(a)              ((a) ? __garry_n(a) : 0)
+#define garry_insert(a, idx, v)     (__garry_maybegrow(a,1), __garry_memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - idx) * sizeof(*(a))), a[idx] = (v))
+#define garry_push(a, v)            (garry_insert(a,0,v))
+#define garry_cdr(a)                (void*)(garry_count(a) > 1 ? &(a+1) : NULL)
+#define garry_car(a)                (void*)((a) ? &(a)[0] : NULL)
+#define garry_last(a)               (void*)((a) ? &(a)[__garry_n(a)-1] : NULL)
+#define garry_pop(a)                (--__garry_n(a), __garry_maybeshrink(a))
+#define garry_remove_at(a, idx)     (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &a[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
+#define garry_shift(a)              (garry_remove_at(a, 0))
+#define garry_clear(a)              ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
+
+static void __garry_growf(void **arr, int increment, int itemsize) {
+    int m = *arr ? 2 * __garry_m(*arr) + increment : increment + 1;
+    void *p = (void*)realloc(*arr ? __garry_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
+    assert(p);
+    if (p) {
+        if (!*arr)
+            ((int *)p)[1] = 0;
+        *arr = (void*)((int*)p + 2);
+        __garry_m(*arr) = m;
+    }
+}
+
+static void __garry_shrinkf(void **arr, int itemsize) {
+    int m = *arr ? __garry_m(*arr) / 2 : 0;
+    void *p = (void*)realloc(*arr ? __garry_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
+    assert(p);
+    if (p) {
+        *arr = (void*)((int*)p + 2);
+        __garry_m(*arr) = m;
+    }
+}
+
+static void* __garry_memmove(void *dst, const void *src, size_t n) {
+    if (!dst || !src)
+        return (void*)0;
+    if (!n)
+        return dst;
+    char *_dest = (char*)dst;
+    char *_src = (char*)src;
+    if (dst <= src)
+        while (n--)
+            *_dest++ = *_src++;
+    else if (dst > src) {
+        _dest += n - 1;
+        _src += n - 1;
+        while (n--)
+            *_dest-- = *_src--;
+    }
+    return dst;
 }
 
 static void parser_add_key(input_parser_t *p, int key) {

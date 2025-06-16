@@ -29,8 +29,16 @@
 extern "C" {
 #endif
 
+#ifndef __has_include
+#define __has_include(x) 1
+#endif
+
 #ifndef SOKOL_AUDIO_INCLUDED
-#error "Please include sokol_audio.h before the sokol_mixer.h implementation"
+#if __has_include("sokol_audio.h")
+#include "sokol_audio.h"
+#else
+#error Please include sokol_audio.h before the sokol_mixer.h implementation
+#endif
 #endif
 
 #if defined(__cplusplus)

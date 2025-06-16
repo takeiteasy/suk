@@ -29,10 +29,6 @@
 extern "C" {
 #endif
 
-#ifndef SOKOL_GFX_INCLUDED
-#error "Please include sokol_gfx.h before sokol_draw.h"
-#endif
-
 #if defined(__cplusplus)
 }
 #endif
@@ -45,12 +41,23 @@ extern "C" {
 #ifndef SUK_DEPS_PATH
 #define SUK_DEPS_PATH "deps"
 #endif
+#ifndef SUK_SOKOL_PATH
+#define SUK_SOKOL_PATH "sokol/util"
+#endif
+
+#ifndef SOKOL_GFX_INCLUDED
+#if __has_include("sokol_gfx.h")
+#include "sokol_gfx.h"
+#else
+#include SUK_SOKOL_PATH "/sokol_gfx.h"
+#endif
+#endif
 
 #ifndef SOKOL_GL_INCLUDED
 #if __has_include("sokol_gl.h")
 #include "sokol_gl.h"
 #else
-#include "sokol/util/sokol_gl.h"
+#include SUK_SOKOL_PATH "/sokol_gl.h"
 #endif
 #endif
 
