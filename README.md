@@ -11,7 +11,6 @@ All libraries are single-header, so `SUK_IMPL` must be defined (***once***) befo
 
 | File                  | Description                                   |
 |-----------------------|-----------------------------------------------|
-| **sokol_draw.h**†     | Easy immediate mode style rendering API (***WIP***) |
 | **sokol_generic.h**   | _Generic wrappers for sokol types             |
 | **sokol_image.h**†    | Load textures from memory or disk             |
 | **sokol_input.h**     | Basic input manager (keyboard, mouse, etc)    |
@@ -21,7 +20,7 @@ All libraries are single-header, so `SUK_IMPL` must be defined (***once***) befo
 
 ## Libraries used
 
-- sokol_draw.h
+- test/main.c
     - [sokol_gp.h](https://github.com/edubart/sokol_gp/) [MIT]
 - sokol_image.h
     - [stb_image.h](https://github.com/nothings/stb) [MIT or Public Domain]
@@ -32,7 +31,6 @@ All libraries are single-header, so `SUK_IMPL` must be defined (***once***) befo
     - [dr_wav.h](https://github.com/mackron/dr_libs/) [MIT or Public Domain]
     - [stb_vorbis.h](https://github.com/nothings/stb) [MIT or Public Domain]
     - [qoa.h](https://github.com/phoboslab/qoa/) [MIT]
-    
 
 ## LICENSE
 ```

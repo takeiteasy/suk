@@ -51,13 +51,13 @@ extern "C" {
 
 #include <stdarg.h>
 
-// Assign sapp_desc.event_cb = suk_event
+// Assign sapp_desc.event_cb = sapp_input_event
 // Or just pass the event to it inside the callback
-void suk_event(const sapp_event *event);
+void sapp_input_event(const sapp_event *event);
 // Call this at the end of sapp frame callback
-void suk_input_flush(void);
+void sapp_input_flush(void);
 // Clear the input internal state
-void suk_input(void);
+void sapp_input_init(void);
 
 bool sapp_is_key_down(int key);
 // This will be true if a key is held for more than 1 second
@@ -110,11 +110,11 @@ bool sapp_check_input_up(int modifiers, int n, ...);
 typedef struct {
     int down;
     uint64_t timestamp;
-} input_state_t;
+} input_action_state_t;
 
 typedef struct {
-    input_state_t keys[SAPP_KEYCODE_MENU+1];
-    input_state_t buttons[3];
+    input_action_state_t keys[SAPP_KEYCODE_MENU+1];
+    input_action_state_t buttons[3];
     int modifier;
     struct {
         int x, y;
@@ -124,6 +124,15 @@ typedef struct {
     } scroll;
 } input_t;
 
+#ifndef MAX_INPUT_STATE_KEYS
+#define MAX_INPUT_STATE_KEYS 8
+#endif
+
+typedef struct input_state_t {
+    int keys[MAX_INPUT_STATE_KEYS];
+    int modifiers;
+} input_state_t;
+
 #ifndef DEFAULT_KEY_HOLD_DELAY
 #define DEFAULT_KEY_HOLD_DELAY 1
 #endif
@@ -132,12 +141,12 @@ static struct {
     input_t input_prev, input_current;
 } state;
 
-void suk_init_input(void) {
+void sapp_init_input(void) {
     memset(&state.input_prev,    0, sizeof(input_t));
     memset(&state.input_current, 0, sizeof(input_t));
 }
 
-void suk_event(const sapp_event* e) {
+void sapp_input_event(const sapp_event* e) {
     switch (e->type) {
         case SAPP_EVENTTYPE_KEY_UP:
         case SAPP_EVENTTYPE_KEY_DOWN:
@@ -164,7 +173,7 @@ void suk_event(const sapp_event* e) {
     }
 }
 
-void suk_input_flush(void) {
+void sapp_input_flush(void) {
     memcpy(&state.input_prev, &state.input_current, sizeof(input_t));
     state.input_current.scroll.x = state.input_current.scroll.y = 0.f;
 }

@@ -99,43 +99,15 @@ static int does_file_exist(const char *path) {
     return !access(path, F_OK);
 }
 
-static const char* file_extension(const char *path) {
-    const char *dot = strrchr(path, '.');
-    return !dot || dot == path ? NULL : dot + 1;
-}
-
 sg_image sg_load_texture_path_ex(const char *path, int *width, int *height) {
     if (!does_file_exist(path))
         return (sg_image){.id=SG_INVALID_ID};
-    
-#define VALID_EXTS_SZ 11
-    static const char *valid_extensions[VALID_EXTS_SZ] = {
-        "jpg", "jpeg", "png", "bmp", "psd", "tga", "hdr", "pic", "ppm", "pgm", "qoi"
-    };
-    const char *ext = file_extension(path);
-    unsigned long ext_length = strlen(ext);
-    char *dup = strdup(ext);
-    for (int i = 0; i < ext_length; i++)
-        if (dup[i] >= 'A' && dup[i] <= 'Z')
-            dup[i] += 32;
-    int found = 0;
-    for (int i = 0; i < VALID_EXTS_SZ; i++) {
-        if (!strncmp(dup, valid_extensions[i], ext_length)) {
-            found = 1;
-            break;
-        }
-    }
-    free(dup);
-    if (!found)
-        return (sg_image){.id=SG_INVALID_ID};
-    
     size_t sz = -1;
     FILE *fh = fopen(path, "rb");
     assert(fh);
     fseek(fh, 0, SEEK_END);
     sz = ftell(fh);
     fseek(fh, 0, SEEK_SET);
-    
     unsigned char *data = malloc(sz * sizeof(unsigned char));
     fread(data, sz, 1, fh);
     fclose(fh);
