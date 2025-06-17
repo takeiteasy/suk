@@ -124,21 +124,29 @@ void saudio_mixer_deinit(void) {
 }
 
 bool saudio_load_path(const char *path, saudio_buffer *dst) {
-    size_t size = 0;
-    unsigned char *data = vfs_read(path, &size);
-    if (!data)
+    bool result = false;
+    unsigned char *data = NULL;
+    if (!does_file_exist(path))
         return false;
-    saudio_buffer result = saudio_load_from_memory(data, (int)size, dst);
-    free(data);
-    return true;
-}
-
-bool saudio_load_from_memory(unsigned char *data, int data_size, saudio_buffer *dst) {
-    return saudio_load_from_memory_ex(data, data_size, NULL, dst);
-}
-
-bool saudio_load_path_ex(const char *path, float *length, saudio_buffer *dst) {
-    return saudio_load_path(path, NULL, dst);
+    size_t sz = -1;
+    FILE *fh = fopen(path, "rb");
+    if (!fh)
+        return false;
+    fseek(fh, 0, SEEK_END);
+    if (!(sz = ftell(fh)))
+        goto BAIL;
+    fseek(fh, 0, SEEK_SET);
+    if (!(data = malloc(sz * sizeof(unsigned char))))
+        goto BAIL;
+    if (fread(data, sz, 1, fh) != 1)
+        goto BAIL;
+    result = saudio_load_from_memory(data, (int)sz, dst);
+BAIL:
+    if (fh)
+        fclose(fh);
+    if (data)
+        free(data);
+    return result;
 }
 
 static bool check_if_wav(const unsigned char *data, int size) {
@@ -220,10 +228,8 @@ static bool load_mp3(const unsigned char *data, int size, saudio_buffer *dst) {
     memset(&config, 0, sizeof(drmp3_config));
     memset(dst, 0, sizeof(saudio_buffer));
     unsigned long long int total_count = 0;
-    if (!(dst->buffer = drmp3_open_memory_and_read_pcm_frames_f32(data, size, &config, &total_count, NULL))) {
-        free(result);
+    if (!(dst->buffer = drmp3_open_memory_and_read_pcm_frames_f32(data, size, &config, &total_count, NULL)))
         return NULL;
-    }
     dst->size = 32;
     dst->channels = config.channels;
     dst->rate = config.sampleRate;
@@ -254,7 +260,7 @@ static bool load_flac(const unsigned char *data, int size, saudio_buffer *dst) {
     return true;
 }
 
-bool saudio_load_from_memory_ex(unsigned char *data, int data_size, float *length, saudio_buffer *dst) {
+bool saudio_load_from_memory(unsigned char *data, int size, saudio_buffer *dst) {
     if (check_if_mp3(data, size))
         return load_wav(data, size, dst);
     else if (check_if_ogg(data, size))
