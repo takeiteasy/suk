@@ -1,59 +1,24 @@
-# sokol-kit
+# sokol_input.h
 
 > [!WARNING]
-> Work in progres
+> Work in progress
 
-```sokol-kit``` is a small collection of utility libraries for [sokol](https://github.com/floooh/sokol/)
-
-All libraries are single-header, so `SOKOL_IMPL` must be defined (***once***) before including any headers.
-
-## Libraries
-
-| File                  | Description                                   |
-|-----------------------|-----------------------------------------------|
-| **sokol_generic.h**   | _Generic wrappers for sokol types             |
-| **sokol_image.h**†    | Load textures from memory or disk             |
-| **sokol_input.h**     | Basic input manager (keyboard, mouse, etc)    |
-| **sokol_mixer.h**†    | Audio loader + basic mixer (***WIP***)        |
-
-* **†** Relies on third-party library (located in `deps/`)
-
-## Libraries used
-
-- test/main.c
-    - [sokol_gp.h](https://github.com/edubart/sokol_gp/) [MIT]
-- sokol_image.h
-    - [stb_image.h](https://github.com/nothings/stb) [MIT or Public Domain]
-    - [qoi.h](https://github.com/phoboslab/qoi/) [MIT]
-- sokol_mixer.h
-    - [dr_flac.h](https://github.com/mackron/dr_libs/) [MIT or Public Domain]
-    - [dr_mp3.h](https://github.com/mackron/dr_libs/) [MIT or Public Domain]
-    - [dr_wav.h](https://github.com/mackron/dr_libs/) [MIT or Public Domain]
-    - [stb_vorbis.h](https://github.com/nothings/stb) [MIT or Public Domain]
-    - [qoa.h](https://github.com/phoboslab/qoa/) [MIT]
+Input handler for [sokol](https://github.com/floooh/sokol/). Instead of manually managing events, this library will keep track of the keyboard and mouse state.
 
 ## LICENSE
 ```
-The MIT License (MIT)
+sokol_input Copyright (C) 2025 George Watson
 
-Copyright (c) 2024 George Watson
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of the Software,
-and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```

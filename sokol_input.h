@@ -1,30 +1,22 @@
-/* sokol_input.h -- https://github.com/takeiteasy/sokol-kit
+/* sokol_input.h -- https://github.com/takeiteasy/sokol_input
 
- The MIT License (MIT)
- 
- Copyright (c) 2024 George Watson
- 
- Permission is hereby granted, free of charge, to any person
- obtaining a copy of this software and associated documentation
- files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge,
- publish, distribute, sublicense, and/or sell copies of the Software,
- and to permit persons to whom the Software is furnished to do so,
- subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ sokol_input Copyright (C) 2025 George Watson
 
-#ifndef SK_INPUT
-#define SK_INPUT
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>. */
+
+#ifndef SOKOL_INPUT_HEADER
+#define SOKOL_INPUT_HEADER
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -98,9 +90,9 @@ bool sapp_check_input_up(int modifiers, int n, ...);
 #if defined(__cplusplus)
 }
 #endif
-#endif // SK_INPUT
+#endif // SOKOL_INPUT_HEADER
 
-#ifdef SOKOL_IMPL
+#ifdef SOKOL_INPUT_IMPL
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -139,59 +131,59 @@ typedef struct input_state_t {
 
 static struct {
     input_t input_prev, input_current;
-} state;
+} _input_state;
 
 void sapp_input_init(void) {
-    memset(&state.input_prev,    0, sizeof(input_t));
-    memset(&state.input_current, 0, sizeof(input_t));
+    memset(&_input_state.input_prev,    0, sizeof(input_t));
+    memset(&_input_state.input_current, 0, sizeof(input_t));
 }
 
 void sapp_input_event(const sapp_event* e) {
     switch (e->type) {
         case SAPP_EVENTTYPE_KEY_UP:
         case SAPP_EVENTTYPE_KEY_DOWN:
-            state.input_current.keys[e->key_code].down = e->type == SAPP_EVENTTYPE_KEY_DOWN;
-            state.input_current.keys[e->key_code].timestamp = stm_now();
-            state.input_current.modifier = e->modifiers;
+            _input_state.input_current.keys[e->key_code].down = e->type == SAPP_EVENTTYPE_KEY_DOWN;
+            _input_state.input_current.keys[e->key_code].timestamp = stm_now();
+            _input_state.input_current.modifier = e->modifiers;
             break;
         case SAPP_EVENTTYPE_MOUSE_UP:
         case SAPP_EVENTTYPE_MOUSE_DOWN:
-            state.input_current.buttons[e->mouse_button].down = e->type == SAPP_EVENTTYPE_MOUSE_DOWN;
-            state.input_current.buttons[e->mouse_button].timestamp = stm_now();
+            _input_state.input_current.buttons[e->mouse_button].down = e->type == SAPP_EVENTTYPE_MOUSE_DOWN;
+            _input_state.input_current.buttons[e->mouse_button].timestamp = stm_now();
             break;
         case SAPP_EVENTTYPE_MOUSE_MOVE:
-            state.input_current.cursor.x = e->mouse_x;
-            state.input_current.cursor.y = e->mouse_y;
+            _input_state.input_current.cursor.x = e->mouse_x;
+            _input_state.input_current.cursor.y = e->mouse_y;
             break;
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            state.input_current.scroll.x = e->scroll_x;
-            state.input_current.scroll.y = e->scroll_y;
+            _input_state.input_current.scroll.x = e->scroll_x;
+            _input_state.input_current.scroll.y = e->scroll_y;
             break;
         default:
-            state.input_current.modifier = e->modifiers;
+            _input_state.input_current.modifier = e->modifiers;
             break;
     }
 }
 
 void sapp_input_flush(void) {
-    memcpy(&state.input_prev, &state.input_current, sizeof(input_t));
-    state.input_current.scroll.x = state.input_current.scroll.y = 0.f;
+    memcpy(&_input_state.input_prev, &_input_state.input_current, sizeof(input_t));
+    _input_state.input_current.scroll.x = _input_state.input_current.scroll.y = 0.f;
 }
 
 bool sapp_is_key_down(int key) {
-    return state.input_current.keys[key].down == 1;
+    return _input_state.input_current.keys[key].down == 1;
 }
 
 bool sapp_is_key_held(int key) {
-    return sapp_is_key_down(key) && stm_sec(stm_since(state.input_current.keys[key].timestamp)) > 1;
+    return sapp_is_key_down(key) && stm_sec(stm_since(_input_state.input_current.keys[key].timestamp)) > 1;
 }
 
 bool sapp_was_key_pressed(int key) {
-    return sapp_is_key_down(key) && !state.input_prev.keys[key].down;
+    return sapp_is_key_down(key) && !_input_state.input_prev.keys[key].down;
 }
 
 bool sapp_was_key_released(int key) {
-    return !sapp_is_key_down(key) && state.input_prev.keys[key].down;
+    return !sapp_is_key_down(key) && _input_state.input_prev.keys[key].down;
 }
 
 bool sapp_are_keys_down(int n, ...) {
@@ -199,7 +191,7 @@ bool sapp_are_keys_down(int n, ...) {
     va_start(args, n);
     int result = 1;
     for (int i = 0; i < n; i++)
-        if (!state.input_current.keys[va_arg(args, int)].down) {
+        if (!_input_state.input_current.keys[va_arg(args, int)].down) {
             result = 0;
             goto BAIL;
         }
@@ -213,7 +205,7 @@ bool sapp_any_keys_down(int n, ...) {
     va_start(args, n);
     int result = 0;
     for (int i = 0; i < n; i++)
-        if (state.input_current.keys[va_arg(args, int)].down) {
+        if (_input_state.input_current.keys[va_arg(args, int)].down) {
             result = 1;
             goto BAIL;
         }
@@ -223,19 +215,19 @@ BAIL:
 }
 
 bool sapp_is_button_down(int button) {
-    return state.input_current.buttons[button].down;
+    return _input_state.input_current.buttons[button].down;
 }
 
 bool sapp_is_button_held(int button) {
-    return sapp_is_button_down(button) && stm_sec(stm_since(state.input_current.buttons[button].timestamp)) > 1;
+    return sapp_is_button_down(button) && stm_sec(stm_since(_input_state.input_current.buttons[button].timestamp)) > 1;
 }
 
 bool sapp_was_button_pressed(int button) {
-    return sapp_is_button_down(button) && !state.input_prev.buttons[button].down;
+    return sapp_is_button_down(button) && !_input_state.input_prev.buttons[button].down;
 }
 
 bool sapp_was_button_released(int button) {
-    return !sapp_is_button_down(button) && state.input_prev.buttons[button].down;
+    return !sapp_is_button_down(button) && _input_state.input_prev.buttons[button].down;
 }
 
 bool sapp_are_buttons_down(int n, ...) {
@@ -243,7 +235,7 @@ bool sapp_are_buttons_down(int n, ...) {
     va_start(args, n);
     int result = 1;
     for (int i = 0; i < n; i++)
-        if (!state.input_current.buttons[va_arg(args, int)].down) {
+        if (!_input_state.input_current.buttons[va_arg(args, int)].down) {
             result = 0;
             goto BAIL;
         }
@@ -257,7 +249,7 @@ bool sapp_any_buttons_down(int n, ...) {
     va_start(args, n);
     int result = 0;
     for (int i = 0; i < n; i++)
-        if (state.input_current.buttons[va_arg(args, int)].down) {
+        if (_input_state.input_current.buttons[va_arg(args, int)].down) {
             result = 1;
             goto BAIL;
         }
@@ -267,43 +259,43 @@ BAIL:
 }
 
 bool sapp_modifier_equal(int mods) {
-    return state.input_current.modifier == mods;
+    return _input_state.input_current.modifier == mods;
 }
 
 bool sapp_modifier_down(int mod) {
-    return state.input_current.modifier & mod;
+    return _input_state.input_current.modifier & mod;
 }
 
 bool sapp_has_mouse_move(void) {
-    return state.input_current.cursor.x != state.input_prev.cursor.x || state.input_current.cursor.y != state.input_prev.cursor.y;
+    return _input_state.input_current.cursor.x != _input_state.input_prev.cursor.x || _input_state.input_current.cursor.y != _input_state.input_prev.cursor.y;
 }
 
 int sapp_cursor_x(void) {
-    return state.input_current.cursor.x;
+    return _input_state.input_current.cursor.x;
 }
 
 int sapp_cursor_y(void) {
-    return state.input_current.cursor.y;
+    return _input_state.input_current.cursor.y;
 }
 
 bool sapp_cursor_delta_x(void) {
-    return state.input_current.cursor.x - state.input_prev.cursor.x;
+    return _input_state.input_current.cursor.x - _input_state.input_prev.cursor.x;
 }
 
 bool sapp_cursor_delta_y(void) {
-    return state.input_current.cursor.y - state.input_prev.cursor.y;
+    return _input_state.input_current.cursor.y - _input_state.input_prev.cursor.y;
 }
 
 bool sapp_check_scrolled(void) {
-    return state.input_current.scroll.x != 0 || state.input_current.scroll.y != 0;
+    return _input_state.input_current.scroll.x != 0 || _input_state.input_current.scroll.y != 0;
 }
 
 float sapp_scroll_x(void) {
-    return state.input_current.scroll.x;
+    return _input_state.input_current.scroll.x;
 }
 
 float sapp_scroll_y(void) {
-    return state.input_current.scroll.y;
+    return _input_state.input_current.scroll.y;
 }
 
 typedef struct input_str {
