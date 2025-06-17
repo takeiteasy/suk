@@ -48,12 +48,12 @@ typedef struct image_buffer {
     int32_t *buffer;
 } sg_image_buffer;
 
-sg_image_buffer sg_empty_image(unsigned int w, unsigned int h);
-bool sg_image_load_path(const char *path, sg_image_buffer *dst);
-bool sg_image_load_from_memory(const void *data, size_t length, sg_image_buffer *dst);
+sg_image_buffer sg_empty_image_buffer(unsigned int w, unsigned int h);
+bool sg_image_buffer_from_path(const char *path, sg_image_buffer *dst);
+bool sg_image_buffer_from_memory(const void *data, size_t length, sg_image_buffer *dst);
 void sg_destroy_image_buffer(sg_image_buffer *img);
-void sg_image_pset(sg_image_buffer *img, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-void sg_image_pget(sg_image_buffer *img, int x, int y, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a);
+void sg_image_buffer_pset(sg_image_buffer *img, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void sg_image_buffer_pget(sg_image_buffer *img, int x, int y, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a);
 
 sg_image sg_empty_texture(unsigned int width, unsigned int height);
 sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height);
@@ -104,7 +104,7 @@ static int does_file_exist(const char *path) {
     return !access(path, F_OK);
 }
 
-sg_image_buffer sg_empty_image(unsigned int w, unsigned int h) {
+sg_image_buffer sg_empty_image_buffer(unsigned int w, unsigned int h) {
     assert(w > 0 && h > 0);
     size_t size = w * h * sizeof(int);
     sg_image_buffer result = {
@@ -116,7 +116,7 @@ sg_image_buffer sg_empty_image(unsigned int w, unsigned int h) {
     return result;
 }
 
-bool sg_image_load_path(const char *path, sg_image_buffer *dst) {
+bool sg_image_buffer_from_path(const char *path, sg_image_buffer *dst) {
     bool result = false;
     unsigned char *data = NULL;
     if (!does_file_exist(path))
@@ -133,7 +133,7 @@ bool sg_image_load_path(const char *path, sg_image_buffer *dst) {
         goto BAIL;
     if (fread(data, sz, 1, fh) != 1)
         goto BAIL;
-    result = sg_image_load_from_memory(data, (int)sz, dst);
+    result = sg_image_buffer_from_memory(data, (int)sz, dst);
 BAIL:
     if (fh)
         fclose(fh);
@@ -146,7 +146,7 @@ static int check_if_qoi(unsigned char *data) {
     return RGBA(data[0], data[0], data[0], data[0]) ==  RGBA('q', 'o', 'i', 'f');
 }
 
-bool sg_image_load_from_memory(const void *data, size_t data_size, sg_image_buffer *dst) {
+bool sg_image_buffer_from_memory(const void *data, size_t data_size, sg_image_buffer *dst) {
     if (!data || data_size <= 0)
         return false;
     int _w, _h, c;
@@ -187,12 +187,12 @@ void sg_destroy_image_buffer(sg_image_buffer *img) {
     }
 }
 
-void sg_image_pset(sg_image_buffer *img, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void sg_image_buffer_pset(sg_image_buffer *img, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
         img->buffer[y * img->width + x] = RGBA(r, g, b, a);
 }
 
-void sg_image_pget(sg_image_buffer *img, int x, int y, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a) {
+void sg_image_buffer_pget(sg_image_buffer *img, int x, int y, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a) {
     int color = 0;
     if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
         color = img->buffer[y * img->width + x];
@@ -226,7 +226,7 @@ static sg_image image_to_sg(sg_image_buffer *img) {
 
 sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height) {
     sg_image_buffer tmp;
-    if (!sg_image_load_path(path, &tmp))
+    if (!sg_image_buffer_from_path(path, &tmp))
         return (sg_image){.id=SG_INVALID_ID};
     if (width)
         *width = tmp.width;
@@ -237,7 +237,7 @@ sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned in
 
 sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height) {
     sg_image_buffer tmp;
-    if (!sg_image_load_from_memory(data, data_size, &tmp))
+    if (!sg_image_buffer_from_memory(data, data_size, &tmp))
         return (sg_image){.id=SG_INVALID_ID};
     if (width)
         *width = tmp.width;
