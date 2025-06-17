@@ -41,13 +41,13 @@ extern "C" {
 #endif
 #endif
 
-typedef struct saudio_raw {
+typedef struct saudio_buffer {
     unsigned int count;
     unsigned int rate;
     unsigned int size; // 8, 16, or 32
     unsigned int channels;
     void *buffer;
-} saudio_raw;
+} saudio_buffer;
 
 void saudio_mixer_init(void);
 void saudio_mixer_deinit(void);
@@ -128,7 +128,7 @@ bool saudio_load_path(const char *path, saudio_buffer *dst) {
     unsigned char *data = vfs_read(path, &size);
     if (!data)
         return false;
-    saudio_raw result = saudio_load_from_memory(data, (int)size, dst);
+    saudio_buffer result = saudio_load_from_memory(data, (int)size, dst);
     free(data);
     return true;
 }

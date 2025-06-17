@@ -70,7 +70,7 @@ static void init(void) {
         exit(-1);
     }
 
-    test_texture = sg_load_texture_path("test/pear.jpg");
+    test_texture = sg_load_texture_path("test/pear.jpg", NULL, NULL);
 }
 
 // Called when the application is shutting down.

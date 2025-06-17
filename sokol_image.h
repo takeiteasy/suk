@@ -41,11 +41,25 @@ extern "C" {
 #endif
 #endif
 
-sg_image sg_empty_texture(int width, int height);
-sg_image sg_load_texture_path(const char *path);
-sg_image sg_load_texture_memory(unsigned char *data, int data_size);
-sg_image sg_load_texture_path_ex(const char *path, int *width, int *height);
-sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *width, int *height);
+#include <stdint.h>
+
+typedef struct image_buffer {
+    unsigned int width, height;
+    int32_t *buffer;
+} sg_image_buffer;
+
+sg_image_buffer sg_empty_image(unsigned int w, unsigned int h);
+bool sg_image_load_path(const char *path, sg_image_buffer *dst);
+bool sg_image_load_from_memory(const void *data, size_t length, sg_image_buffer *dst);
+void sg_destroy_image_buffer(sg_image_buffer *img);
+void sg_image_pset(sg_image_buffer *img, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void sg_image_pget(sg_image_buffer *img, int x, int y, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a);
+
+sg_image sg_empty_texture(unsigned int width, unsigned int height);
+sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height);
+sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height);
+sg_image sg_load_texture_from_buffer(sg_image_buffer *img);
+void sg_update_texture_from_buffer(sg_image texture, sg_image_buffer *img);
 
 #if defined(__cplusplus)
 }
@@ -84,8 +98,117 @@ sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *widt
 #include SK_DEPS_PATH "/qoi.h"
 #endif
 
-sg_image sg_empty_texture(int width, int height) {
-    assert(width && height);
+#define RGBA(R, G, B, A) (((unsigned int)(R) << 24) | ((unsigned int)(B) << 16) | ((unsigned int)(G) << 8) | (A))
+
+static int does_file_exist(const char *path) {
+    return !access(path, F_OK);
+}
+
+sg_image_buffer sg_empty_image(unsigned int w, unsigned int h) {
+    assert(w > 0 && h > 0);
+    size_t size = w * h * sizeof(int);
+    sg_image_buffer result = {
+        .width = w,
+        .height = h,
+        .buffer = malloc(size)
+    };
+    memset(result.buffer, 0, size);
+    return result;
+}
+
+bool sg_image_load_path(const char *path, sg_image_buffer *dst) {
+    bool result = false;
+    unsigned char *data = NULL;
+    if (!does_file_exist(path))
+        return false;
+    size_t sz = -1;
+    FILE *fh = fopen(path, "rb");
+    if (!fh)
+        return false;
+    fseek(fh, 0, SEEK_END);
+    if (!(sz = ftell(fh)))
+        goto BAIL;
+    fseek(fh, 0, SEEK_SET);
+    if (!(data = malloc(sz * sizeof(unsigned char))))
+        goto BAIL;
+    if (fread(data, sz, 1, fh) != 1)
+        goto BAIL;
+    result = sg_image_load_from_memory(data, (int)sz, dst);
+BAIL:
+    if (fh)
+        fclose(fh);
+    if (data)
+        free(data);
+    return result;
+}
+
+static int check_if_qoi(unsigned char *data) {
+    return RGBA(data[0], data[0], data[0], data[0]) ==  RGBA('q', 'o', 'i', 'f');
+}
+
+bool sg_image_load_from_memory(const void *data, size_t data_size, sg_image_buffer *dst) {
+    if (!data || data_size <= 0)
+        return false;
+    int _w, _h, c;
+    unsigned char *img_data = NULL;
+    if (check_if_qoi((unsigned char*)data)) {
+        qoi_desc desc;
+        if (!(img_data = qoi_decode(data, data_size, &desc, 4)))
+            return false;
+        _w = desc.width;
+        _h = desc.height;
+    } else
+        if (!(img_data = stbi_load_from_memory(data, data_size, &_w, &_h, &c, 4)))
+            return false;
+    if (_w <= 0 || _h <= 0 || c < 3) {
+        free(img_data);
+        return false;
+    }
+
+    dst->width = _w;
+    dst->height = _h;
+    if (!(dst->buffer = malloc(_w * _h * sizeof(int)))) {
+        free(img_data);
+        return false;
+    }
+    for (int x = 0; x < _w; x++)
+        for (int y = 0; y < _h; y++) {
+            unsigned char *p = img_data + (x + _w * y) * 4;
+            dst->buffer[y * _w + x] = RGBA(p[0], p[1], p[2], p[3]);
+        }
+    free(img_data);
+    return true;
+}
+
+void sg_destroy_image_buffer(sg_image_buffer *img) {
+    if (img && img->buffer) {
+        free(img->buffer);
+        memset(img, 0, sizeof(sg_image_buffer));
+    }
+}
+
+void sg_image_pset(sg_image_buffer *img, int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        img->buffer[y * img->width + x] = RGBA(r, g, b, a);
+}
+
+void sg_image_pget(sg_image_buffer *img, int x, int y, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a) {
+    int color = 0;
+    if (img->buffer && x >= 0 && y >= 0 && x <= img->width && y <= img->height)
+        color = img->buffer[y * img->width + x];
+    if (r)
+        *r = (color >> 24) & 0xFF;
+    if (g)
+        *g = (color >> 16) & 0xFF;
+    if (g)
+        *g = (color >> 8) & 0xFF;
+    if (a)
+        *a = color & 0xFF;
+}
+
+sg_image sg_empty_texture(unsigned int width, unsigned int height) {
+    if (width <= 0 || height <= 0)
+        return (sg_image){.id=SG_INVALID_ID};
     sg_image_desc desc = {
         .width = width,
         .height = height,
@@ -95,88 +218,42 @@ sg_image sg_empty_texture(int width, int height) {
     return sg_make_image(&desc);
 }
 
-static int does_file_exist(const char *path) {
-    return !access(path, F_OK);
-}
-
-sg_image sg_load_texture_path_ex(const char *path, int *width, int *height) {
-    if (!does_file_exist(path))
-        return (sg_image){.id=SG_INVALID_ID};
-    size_t sz = -1;
-    FILE *fh = fopen(path, "rb");
-    assert(fh);
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-    unsigned char *data = malloc(sz * sizeof(unsigned char));
-    fread(data, sz, 1, fh);
-    fclose(fh);
-    sg_image result = sg_load_texture_memory_ex(data, (int)sz, width, height);
-    free(data);
-    return result;
-}
-
-#define QOI_MAGIC (((unsigned int)'q') << 24 | ((unsigned int)'o') << 16 | ((unsigned int)'i') <<  8 | ((unsigned int)'f'))
-
-static int check_if_qoi(unsigned char *data) {
-    return (data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3]) == QOI_MAGIC;
-}
-
-#define RGBA(R, G, B, A) (((unsigned int)(A) << 24) | ((unsigned int)(B) << 16) | ((unsigned int)(G) << 8) | (R))
-
-static int* load_texture_data(unsigned char *data, int data_size, int *w, int *h) {
-    assert(data && data_size);
-    int _w, _h, c;
-    unsigned char *in = NULL;
-    if (check_if_qoi(data)) {
-        qoi_desc desc;
-        in = qoi_decode(data, data_size, &desc, 4);
-        _w = desc.width;
-        _h = desc.height;
-    } else
-        in = stbi_load_from_memory(data, data_size, &_w, &_h, &c, 4);
-    assert(in && _w && _h);
-    
-    int *buf = malloc(_w * _h * sizeof(int));
-    for (int x = 0; x < _w; x++)
-        for (int y = 0; y < _h; y++) {
-            unsigned char *p = in + (x + _w * y) * 4;
-            buf[y * _w + x] = RGBA(p[0], p[1], p[2], p[3]);
-        }
-    free(in);
-    if (w)
-        *w = _w;
-    if (h)
-        *h = _h;
-    return buf;
-}
-
-sg_image sg_load_texture_memory_ex(unsigned char *data, int data_size, int *width, int *height) {
-    assert(data && data_size);
-    int w, h;
-    int *tmp = load_texture_data(data, data_size, &w, &h);
-    assert(tmp && w && h);
-    sg_image texture = sg_empty_texture(w, h);
-    sg_image_data desc = {
-        .subimage[0][0] = (sg_range) {
-            .ptr = tmp,
-            .size = w * h * sizeof(int)
-        }
-    };
-    sg_update_image(texture, &desc);
-    free(tmp);
-    if (width)
-        *width = w;
-    if (height)
-        *height = h;
+static sg_image image_to_sg(sg_image_buffer *img) {
+    sg_image texture = sg_empty_texture(img->width, img->height);
+    sg_update_texture_from_buffer(texture, img);
     return texture;
 }
 
-sg_image sg_load_texture_path(const char *path) {
-    return sg_load_texture_path_ex(path, NULL, NULL);
+sg_image sg_load_texture_path(const char *path, unsigned int *width, unsigned int *height) {
+    sg_image_buffer tmp;
+    if (!sg_image_load_path(path, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
 }
 
-sg_image sg_load_texture_memory(unsigned char *data, int data_size) {
-    return sg_load_texture_memory_ex(data, data_size, NULL, NULL);
+sg_image sg_load_texture_from_memory(unsigned char *data, size_t data_size, unsigned int *width, unsigned int *height) {
+    sg_image_buffer tmp;
+    if (!sg_image_load_from_memory(data, data_size, &tmp))
+        return (sg_image){.id=SG_INVALID_ID};
+    if (width)
+        *width = tmp.width;
+    if (height)
+        *height = tmp.height;
+    return image_to_sg(&tmp);
+}
+
+void sg_update_texture_from_buffer(sg_image texture, sg_image_buffer *img) {
+    if (texture.id == SG_INVALID_ID)
+        return;
+    sg_update_image(texture, &(sg_image_data) {
+        .subimage[0][0] = (sg_range) {
+            .ptr = img->buffer,
+            .size = img->width * img->height * sizeof(int)
+        }
+    });
 }
 #endif
