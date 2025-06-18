@@ -43,6 +43,19 @@ extern "C" {
 
 #include <stdarg.h>
 
+#ifndef MAX_INPUT_STATE_KEYS
+#define MAX_INPUT_STATE_KEYS 8
+#endif
+
+#ifndef DEFAULT_KEY_HOLD_DELAY
+#define DEFAULT_KEY_HOLD_DELAY 1
+#endif
+
+typedef struct sapp_input_state {
+    int keys[MAX_INPUT_STATE_KEYS];
+    int modifiers;
+} sapp_input_state;
+
 // Assign sapp_desc.event_cb = sapp_input_event
 // Or just pass the event to it inside the callback
 void sapp_input_event(const sapp_event *event);
@@ -80,12 +93,12 @@ bool sapp_check_scrolled(void);
 float sapp_scroll_x(void);
 float sapp_scroll_y(void);
 
-bool sapp_check_input_str_down(const char *str);
-bool sapp_check_input_down(int modifiers, int n, ...);
-bool sapp_check_input_str_released(const char *str);
-bool sapp_check_input_released(int modifiers, int n, ...);
-bool sapp_check_input_str_up(const char *str);
-bool sapp_check_input_up(int modifiers, int n, ...);
+bool sapp_input_check_str_down(const char *str);
+bool sapp_input_check_down(int modifiers, int n, ...);
+bool sapp_input_check_str_released(const char *str);
+bool sapp_input_check_released(int modifiers, int n, ...);
+bool sapp_input_check_str_up(const char *str);
+bool sapp_input_check_up(int modifiers, int n, ...);
 
 #if defined(__cplusplus)
 }
@@ -115,19 +128,6 @@ typedef struct {
         float x, y;
     } scroll;
 } input_t;
-
-#ifndef MAX_INPUT_STATE_KEYS
-#define MAX_INPUT_STATE_KEYS 8
-#endif
-
-typedef struct input_state_t {
-    int keys[MAX_INPUT_STATE_KEYS];
-    int modifiers;
-} input_state_t;
-
-#ifndef DEFAULT_KEY_HOLD_DELAY
-#define DEFAULT_KEY_HOLD_DELAY 1
-#endif
 
 static struct {
     input_t input_prev, input_current;
@@ -258,7 +258,7 @@ BAIL:
     return result;
 }
 
-bool sapp_modifier_equal(int mods) {
+bool sapp_modifier_equals(int mods) {
     return _input_state.input_current.modifier == mods;
 }
 
@@ -577,7 +577,7 @@ static int* _vaargs(int n, va_list args) {
 
 #define _MIN(A, B) ((A) < (B) ? (A) : (B))
 
-static bool sapp_create_input(input_state_t *dst, int modifiers, int n, ...) {
+bool sapp_create_input(sapp_input_state *dst, int modifiers, int n, ...) {
     dst->modifiers = modifiers;
     va_list args;
     va_start(args, n);
@@ -594,7 +594,7 @@ static bool sapp_create_input(input_state_t *dst, int modifiers, int n, ...) {
     return true;
 }
 
-static bool sapp_create_input_str(input_state_t *dst, const char *str) {
+bool sapp_create_input_str(sapp_input_state *dst, const char *str) {
     dst->modifiers = -1;
     for (int i = 0; i < MAX_INPUT_STATE_KEYS; i++)
         dst->keys[i] = -1;
@@ -614,7 +614,7 @@ static bool sapp_create_input_str(input_state_t *dst, const char *str) {
     return true;
 }
 
-bool sapp_check_input_str_down(const char *str) {
+bool sapp_input_check_str_down(const char *str) {
     input_parser_t p;
     memset(&p, 0, sizeof(input_parser_t));
     p.original = p.offset = p.cursor = str;
@@ -623,7 +623,7 @@ bool sapp_check_input_str_down(const char *str) {
     bool mod_check = true;
     bool key_check = true;
     if (p.modifiers)
-        mod_check = sapp_modifier_equal(p.modifiers);
+        mod_check = sapp_modifier_equals(p.modifiers);
     if (p.keys) {
         for (int i = 0; i < vector_count(p.keys); i++)
             if (!sapp_is_key_down(p.keys[i])) {
@@ -635,11 +635,11 @@ bool sapp_check_input_str_down(const char *str) {
     return mod_check && key_check;
 }
 
-bool sapp_check_input_down(int modifiers, int n, ...) {
+bool sapp_input_check_down(int modifiers, int n, ...) {
     int *tmp = NULL;
     bool result = false;
     if (modifiers != 0)
-        if (!sapp_modifier_equal(modifiers))
+        if (!sapp_modifier_equals(modifiers))
             goto BAIL;
     if (!n)
         goto BAIL;
@@ -662,7 +662,7 @@ BAIL:
     return result;
 }
 
-bool sapp_check_input_str_released(const char *str) {
+bool sapp_input_check_str_released(const char *str) {
     input_parser_t p;
     memset(&p, 0, sizeof(input_parser_t));
     p.original = p.offset = p.cursor = str;
@@ -671,7 +671,7 @@ bool sapp_check_input_str_released(const char *str) {
     bool mod_check = true;
     bool key_check = true;
     if (p.modifiers)
-        mod_check = sapp_modifier_equal(p.modifiers);
+        mod_check = sapp_modifier_equals(p.modifiers);
     if (p.keys) {
         for (int i = 0; i < vector_count(p.keys); i++)
             if (!sapp_was_key_released(p.keys[i])) {
@@ -683,11 +683,11 @@ bool sapp_check_input_str_released(const char *str) {
     return mod_check || key_check;
 }
 
-bool sapp_check_input_released(int modifiers, int n, ...) {
+bool sapp_input_check_released(int modifiers, int n, ...) {
     int *tmp = NULL;
     bool result = false;
     if (modifiers != 0)
-        if (!sapp_modifier_equal(modifiers))
+        if (!sapp_modifier_equals(modifiers))
             goto BAIL;
     if (!n)
         goto BAIL;
@@ -710,7 +710,7 @@ BAIL:
     return result;
 }
 
-bool sapp_check_input_str_up(const char *str) {
+bool sapp_input_check_str_up(const char *str) {
     input_parser_t p;
     memset(&p, 0, sizeof(input_parser_t));
     p.original = p.offset = p.cursor = str;
@@ -719,7 +719,7 @@ bool sapp_check_input_str_up(const char *str) {
     bool mod_check = true;
     bool key_check = true;
     if (p.modifiers)
-        if ((mod_check = sapp_modifier_equal(p.modifiers)))
+        if ((mod_check = sapp_modifier_equals(p.modifiers)))
             return false;
     if (p.keys) {
         for (int i = 0; i < vector_count(p.keys); i++)
@@ -732,11 +732,11 @@ bool sapp_check_input_str_up(const char *str) {
     return mod_check && key_check;
 }
 
-bool sapp_check_input_up(int modifiers, int n, ...) {
+bool sapp_input_check_up(int modifiers, int n, ...) {
     int *tmp = NULL;
     bool result = false;
     if (modifiers != 0)
-        if (sapp_modifier_equal(modifiers))
+        if (sapp_modifier_equals(modifiers))
             goto BAIL;
     if (!n)
         goto BAIL;
